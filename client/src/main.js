@@ -1,18 +1,22 @@
 import Rx from 'rx';
 import Peer from 'peerjs';
 import {CONFIG} from '../config';
-import './from-peer-connection';
-import './from-server-connection';
+import './extensions';
 
 var $stage = document.querySelector('#stage');
+var $colorInput = document.querySelector('#color');
 var $peerInput = document.querySelector('#peer-id');
 var $id = document.querySelector('#id');
 var p2p = new Peer(CONFIG.peer);
 var handles = [];
+var colors = ['ED0456', 'FCCE1B', '99ED09', '1E9EFC', '9000D8'];
 
+const DEFAULT_COLOR = Math.round(Math.random() * (colors.length - 1));
 const DEBOUNCE = 2000;
 
-var serverConnection = Rx.Observable.fromServerConnection(p2p,
+$colorInput.value = `#${colors[DEFAULT_COLOR]}`;
+
+var serverConnection = Rx.Observable.fromPeerServer(p2p,
   Rx.Observer.create(
     (id) => {
       console.log(`Established connection to Peer server. ID ${ id }`);
@@ -51,14 +55,15 @@ var mousemove = Rx.Observable.fromEvent(window, 'mousemove')
   )
   .map(
     (e) => ({
-        id: p2p.id,
-        x: e.clientX - $stage.offsetLeft,
-        y: e.clientY - $stage.offsetTop
+      id: p2p.id,
+      x: e.clientX - $stage.offsetLeft,
+      y: e.clientY - $stage.offsetTop,
+      c: $colorInput.value
     })
   );
 
 function handleConnection(conn) {
-  let dataConnection = Rx.Observable.fromPeerConnection(conn,
+  let dataConnection = Rx.Observable.fromPeerDataConnection(conn,
     Rx.Observer.create(
       () => {
         mousemove.subscribe(
@@ -82,11 +87,12 @@ function updateHandle(data) {
   if (!el) {
     el = document.createElement('div');
     el.dataset['peerId'] = data.id;
-    el.classList.add('box');
+    el.classList.add('Stage-peer');
     $stage.appendChild(el);
     handles.push(el);
   }
 
+  el.style.backgroundColor = data.c;
   el.style.left = data.x + 'px';
   el.style.top = data.y + 'px';
 }

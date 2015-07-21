@@ -3,26 +3,32 @@
   <head>
     <meta charset="utf-8">
     <title>p2p playground</title>
-    <style>
-      #stage {
-        height: 500px;
-        width: 500px;
-        background-color: #ccc;
-        position: relative;
-      }
-
-      #stage .box {
-        width: 30px;
-        height: 30px;
-        background-color: green;
-        position: absolute;
-      }
-    </style>
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <p>Your id: <span id="id"></span></p>
-    <input type="text" id="peer-id">
-    <div id="stage"></div>
+    <div class="App">
+      <div class="Info">
+        <div class="Info-item">
+          <strong>your id</strong>
+          <span id="id"></span>
+          <label for="color">
+            <strong>color</strong>
+          </label>
+          <div>
+            <input type="text" id="color">
+          </div>
+        </div>
+        <div class="Info-item">
+          <label for="peer-id">
+            <strong>peer id</strong>
+          </label>
+          <div>
+            <input type="text" id="peer-id">
+          </div>
+        </div>
+      </div>
+      <div id="stage" class="Stage"></div>
+    </div>
     <script src="/assets/bundle.js"></script>
   </body>
 </html>
