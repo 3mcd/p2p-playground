@@ -1,69 +1,89 @@
+import Rx from 'rx';
 import Peer from 'peerjs';
 import {CONFIG} from '../config';
+import './from-peer-connection';
+import './from-server-connection';
 
-const STAGE = document.querySelector('#stage');
-const PEER_ID_INPUT = document.querySelector('#peer-id');
-const LOCAL_ID = document.querySelector('#id');
-const P2P = new Peer(CONFIG.peer);
-const DEBOUNCE = 2000;
-
+var $stage = document.querySelector('#stage');
+var $peerInput = document.querySelector('#peer-id');
+var $id = document.querySelector('#id');
+var p2p = new Peer(CONFIG.peer);
 var handles = [];
 
-P2P.on('open',
-  (id) => {
-    LOCAL_ID.textContent = id;
-    console.log(`Established connection to Peer server. ID ${ id }`);
-  }
-);
+const DEBOUNCE = 2000;
 
-P2P.on('connection', bindEvents);
-
-var prev;
-
-PEER_ID_INPUT.addEventListener('change',
-  (e) => {
-    clearTimeout(prev);
-    prev = setTimeout(
-      () => {
-        bindEvents(P2P.connect(e.target.value));
-      }, DEBOUNCE
-    )
-  }
-);
-
-function bindEvents(conn) {
-  console.log(conn);
-  window.addEventListener('mousemove',
-    (e) => {
-      let rect = STAGE.getBoundingClientRect();
-      if (
-        e.clientX > rect.left && e.clientX < rect.right &&
-        e.clientY > rect.top && e.clientY < rect.bottom
-      ) {
-        let data = {
-          id: P2P.id,
-          x: e.clientX - STAGE.offsetLeft,
-          y: e.clientY - STAGE.offsetTop
-        };
-        handleInput(data);
-        conn.send(data);
-      }
+var server = Rx.Observable.fromServerConnection(p2p,
+  Rx.Observer.create(
+    (id) => {
+      console.log(`Established connection to Peer server. ID ${ id }`);
+      $id.textContent = id;
     }
+  )
+);
+
+server.subscribe(handleConnection);
+
+var input = Rx.Observable.fromEvent($peerInput, 'keydown')
+  .debounce(DEBOUNCE)
+  .map(
+    (e) => e.target.value
+  )
+  .filter(
+    (id) => id.length > 3
   );
-  conn.on('data', handleInput);
+
+var dataConnection = input
+  .map(
+    (id) => p2p.connect(id)
+  );
+
+dataConnection.subscribe(handleConnection);
+
+var mousemove = Rx.Observable.fromEvent(window, 'mousemove')
+  .filter(
+    (e) => {
+        let rect = $stage.getBoundingClientRect();
+        return (
+          e.clientX > rect.left && e.clientX < rect.right &&
+          e.clientY > rect.top && e.clientY < rect.bottom
+        );
+    }
+  )
+  .map(
+    (e) => ({
+        id: p2p.id,
+        x: e.clientX - $stage.offsetLeft,
+        y: e.clientY - $stage.offsetTop
+    })
+  );
+
+function handleConnection(conn) {
+  let dataConnection = Rx.Observable.fromPeerConnection(conn,
+    Rx.Observer.create(
+      () => {
+        mousemove.subscribe(
+          (data) => {
+            conn.send(data);
+            updateHandle(data);
+          }
+        );
+      }
+    )
+  );
+
+  dataConnection.subscribe(updateHandle);
 }
 
-function handleInput(data) {
-  let id = data.id;
+function updateHandle(data) {
   let el = handles.filter(
-    (x) => x.dataset.id == id
+    (x) => x.dataset.id == data.id
   )[0];
 
   if (!el) {
     el = document.createElement('div');
-    el.dataset.id = id;
+    el.dataset.id = data.id;
     el.classList.add('box');
-    STAGE.appendChild(el);
+    $stage.appendChild(el);
     handles.push(el);
   }
 

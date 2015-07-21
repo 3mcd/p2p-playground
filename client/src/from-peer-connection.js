@@ -28,7 +28,8 @@ Rx.Observable.fromPeerConnection = (conn, openObserver, closeObserver) => {
       obs.onCompleted();
     }
 
-    conn.on('open', openHandler);
+    if (openObserver)
+      conn.on('open', openHandler);
     conn.on('error', errorHandler);
     conn.on('data', dataHandler);
     conn.on('close', peerClose);

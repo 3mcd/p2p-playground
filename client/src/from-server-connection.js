@@ -17,7 +17,6 @@ Rx.Observable.fromServerConnection = (conn, openObserver, closeObserver) => {
     }
 
     function dataHandler(data) {
-      console.log(data);
       obs.onNext(data);
     }
 
