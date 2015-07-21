@@ -1,10 +1,10 @@
 ###p2p-playground
 
 This repository contains an example application built with
-(http://peerjs.com/)[PeerJS] and
-(https://github.com/Reactive-Extensions/RxJS)[RxJS]. This app provides a minimal
+[http://peerjs.com/](PeerJS) and
+[https://github.com/Reactive-Extensions/RxJS](RxJS). This app provides a minimal
 starting point for building a peer-to-peer application with reactive functional
-programming techniques and (https://babeljs.io/docs/learn-es2015/)[ES2015].
+programming techniques and [https://babeljs.io/docs/learn-es2015/](ES2015).
 
 ####Installation
 
@@ -15,7 +15,7 @@ Ensure you have the latest version of Node installed. Clone this repo and run
 
 Navigate to `localhost:8000` and copy your ID. Open a separate browser window at
 the same URL and paste the ID in the text input (or have a friend do it). After
-~2000ms the server will attempt to establish a (http://www.webrtc.org/)[WebRTC]
+~2000ms the server will attempt to establish a [http://www.webrtc.org/](WebRTC)
 connection between the two clients. After the connection is made, the two
 peers will send data in real time without help from a server.
 
@@ -29,6 +29,6 @@ to the `dataConnection` or `mousemove` observables?
 
 ####Notes
 
-The application uses (http://expressjs.com/)[Express] to serve assets and host
+The application uses [http://expressjs.com/](Express) to serve assets and host
 the PeerJS server. The client bundle file is served via `webpack-dev-middleware`
 and will update when the source files change.
