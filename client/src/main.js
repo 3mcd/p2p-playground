@@ -70,17 +70,3 @@ function handleInput(data) {
   el.style.left = data.x + 'px';
   el.style.top = data.y + 'px';
 }
-
-function findPos (obj) {
-  let left = 0,
-    top = 0;
-
-  if (obj.offsetParent) {
-    do {
-      left += obj.offsetLeft;
-      top += obj.offsetTop;
-    } while (obj = obj.offsetParent);
-
-    return { x: left, y: top };
-  }
-}
