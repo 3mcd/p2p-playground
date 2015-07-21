@@ -21,7 +21,7 @@ peers will send data in real time without help from a server.
 
 Moving your cursor within the gray container will send information about the
 position of your mouse directly to the peer client(s) in the form of
-`{ x, y, peerId }`. These payloads are rendered as absolutely positioned `div`
+`{ x, y, color, peerId }`. These payloads are rendered as absolutely positioned `div`
 elements inside of the container. That's it!
 
 Experiment with this repository. What happens when you add a `delay()` operator
