@@ -1,0 +1,23 @@
+{
+  "name": "p2p-playground",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "coffee-loader": "^0.7.2",
+    "express": "^4.13.1",
+    "node-libs-browser": "^0.5.2",
+    "peerjs": "^0.3.14",
+    "rx": "^2.5.3",
+    "webpack": "^1.10.1",
+    "webpack-dev-middleware": "^1.2.0"
+  },
+  "devDependencies": {
+    "coffee-script": "^1.9.3"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com> (http://ericmcd.com)",
+  "license": "ISC"
+}

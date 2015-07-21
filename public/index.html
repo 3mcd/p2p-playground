@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>p2p playground</title>
+    <style>
+      #stage {
+        height: 500px;
+        width: 500px;
+        background-color: #ccc;
+        position: relative;
+      }
+
+      #stage .box {
+        width: 30px;
+        height: 30px;
+        background-color: green;
+        position: absolute;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Your id: <span id="id"></span></p>
+    <input type="text" id="peer-id">
+    <div id="stage"></div>
+    <script src="/assets/bundle.js"></script>
+  </body>
+</html>
