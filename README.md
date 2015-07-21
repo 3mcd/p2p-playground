@@ -1,8 +1,8 @@
-###p2p-playground
+#p2p-playground
 
 This repository contains an example application built with
 [PeerJS](http://peerjs.com/) and
-[RxJS](https://github.com/Reactive-Extensions/RxJS). This app provides a minimal
+[RxJS](https://github.com/Reactive-Extensions/RxJS). The app provides a minimal
 starting point for building a peer-to-peer application with reactive functional
 programming techniques and [ES2015](https://babeljs.io/docs/learn-es2015/).
 
