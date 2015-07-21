@@ -1,6 +1,6 @@
 var config = {
   peer: {
-    host: 'localhost',
+    host: 'ctrl-shift-v',
     port: 8000,
     path: '/peerjs'
   }

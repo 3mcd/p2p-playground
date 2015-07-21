@@ -12,7 +12,7 @@ var handles = [];
 
 const DEBOUNCE = 2000;
 
-var server = Rx.Observable.fromServerConnection(p2p,
+var serverConnection = Rx.Observable.fromServerConnection(p2p,
   Rx.Observer.create(
     (id) => {
       console.log(`Established connection to Peer server. ID ${ id }`);
@@ -20,8 +20,6 @@ var server = Rx.Observable.fromServerConnection(p2p,
     }
   )
 );
-
-server.subscribe(handleConnection);
 
 var input = Rx.Observable.fromEvent($peerInput, 'keydown')
   .debounce(DEBOUNCE)
@@ -37,7 +35,9 @@ var dataConnection = input
     (id) => p2p.connect(id)
   );
 
-dataConnection.subscribe(handleConnection);
+var connections = Rx.Observable.merge(serverConnection, dataConnection);
+
+connections.subscribe(handleConnection);
 
 var mousemove = Rx.Observable.fromEvent(window, 'mousemove')
   .filter(
@@ -63,7 +63,7 @@ function handleConnection(conn) {
       () => {
         mousemove.subscribe(
           (data) => {
-            conn.send(data);
+            dataConnection.onNext(data);
             updateHandle(data);
           }
         );
@@ -76,12 +76,12 @@ function handleConnection(conn) {
 
 function updateHandle(data) {
   let el = handles.filter(
-    (x) => x.dataset.id == data.id
+    (x) => x.dataset['peerId'] == data.id
   )[0];
 
   if (!el) {
     el = document.createElement('div');
-    el.dataset.id = data.id;
+    el.dataset['peerId'] = data.id;
     el.classList.add('box');
     $stage.appendChild(el);
     handles.push(el);
