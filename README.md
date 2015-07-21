@@ -13,7 +13,7 @@ Ensure you have the latest version of Node installed. Clone this repo and run
 
 ####Usage
 
-Navigate to `localhost:8000` and copy your ID. Open a separate browser window at
+Run `node index.js`, navigate to `localhost:8000` and copy your ID. Open a separate browser window at
 the same URL and paste the ID in the text input (or have a friend do it). After
 ~2000ms the server will attempt to establish a [WebRTC](http://www.webrtc.org/)
 connection between the two clients. After the connection is made, the two
