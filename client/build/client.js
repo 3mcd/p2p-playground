@@ -56,35 +56,69 @@
 
 	var _peerjs2 = _interopRequireDefault(_peerjs);
 
-	__webpack_require__(16);
+	var _config = __webpack_require__(16);
 
-	var _config = __webpack_require__(17);
+	__webpack_require__(17);
 
-	var PEER_INPUT = document.querySelector('#peer');
+	__webpack_require__(18);
 
-	var p2p = new _peerjs2['default'](_config.CONFIG.peer);
+	var STAGE = document.querySelector('#stage');
+	var PEER_ID_INPUT = document.querySelector('#peer-id');
+	var LOCAL_ID = document.querySelector('#id');
+	var P2P = new _peerjs2['default'](_config.CONFIG.peer);
 
-	var inputStream = _rx2['default'].Observable.fromEvent(PEER_INPUT, 'input').debounce(1200).filter(function (e) {
+	function getPeerStream(conn) {
+	  var id = conn.peer;
+	  return _rx2['default'].Observable.fromPeerConnection(conn, _rx2['default'].Observer.create(function () {
+	    return console.log('Connected to peer ' + id);
+	  }));
+	}
+
+	var peerServerStream = _rx2['default'].Observable.fromServerConnection(P2P,
+	// onNext() called on 'connect' event
+	_rx2['default'].Observer.create(function (id) {
+	  LOCAL_ID.textContent = id;
+	  console.log('Connected to Peer server with id ' + id);
+	})).flatMap(getPeerStream);
+
+	var idInputStream = _rx2['default'].Observable.fromEvent(PEER_ID_INPUT, 'input').debounce(1200).filter(function (e) {
 	  return e.target.value.length > 0;
 	}).map(function (e) {
 	  return e.target.value;
 	});
 
-	var peerStream = inputStream.flatMap(function (id) {
-	  var conn = p2p.connect(id);
-	  return _rx2['default'].Observable.fromPeerConnection(conn);
+	var peerStream = idInputStream.map(function (id) {
+	  return P2P.connect(id);
 	});
 
-	var dataStream = inputStream.map(function (data) {
+	peerServerStream.subscribe();
+
+	peerStream.subscribe();
+
+	var dataStream = peerServerStream.map(function (data) {
 	  return {
-	    x: data.clientX,
-	    y: data.clientY
+	    id: data.id,
+	    x: data.x,
+	    y: data.y
 	  };
 	});
 
-	peerStream.subscribe(function (data) {
+	var elObserver = _rx2['default'].Observer.create(function (data) {
 	  console.log(data);
+
+	  var el = document.querySelector('[data-id=' + el + ']');
+
+	  if (!el) {
+	    el = document.createElement('div');
+	    el.attributes['data-id'] = el;
+	    STAGE.appendChild(el);
+	  }
+
+	  el.style.left = data.x;
+	  el.style.top = data.y;
 	});
+
+	dataStream.subscribe(elObserver);
 
 /***/ },
 /* 1 */
@@ -13929,6 +13963,25 @@
 
 /***/ },
 /* 16 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+	var config = {
+	  peer: {
+	    host: 'ctrl-shift-v',
+	    port: 8000,
+	    path: '/peerjs'
+	  }
+	};
+
+	exports.CONFIG = config;
+
+/***/ },
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -13949,7 +14002,7 @@
 	    conn.close();
 	  }
 
-	  var observable = new AnonymousObservable(function (obs) {
+	  var observable = new _rx2['default'].AnonymousObservable(function (obs) {
 	    function openHandler(e) {
 	      openObserver.onNext(e);
 	      openObserver.onCompleted();
@@ -13970,12 +14023,12 @@
 	    conn.on('open', openHandler);
 	    conn.on('error', errorHandler);
 	    conn.on('data', dataHandler);
-	    conn.on('close', dataHandler);
+	    conn.on('close', peerClose);
 
 	    return peerClose;
 	  });
 
-	  var observer = observerCreate(function (data) {
+	  var observer = _rx2['default'].Observer.create(function (data) {
 	    conn.send(data);
 	  }, function (e) {
 	    peerClose();
@@ -13983,27 +14036,68 @@
 	    peerClose();
 	  });
 
-	  return Subject.create(observer, observable);
+	  return _rx2['default'].Subject.create(observer, observable);
 	};
 
 /***/ },
-/* 17 */
-/***/ function(module, exports) {
+/* 18 */
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	Object.defineProperty(exports, '__esModule', {
-	  value: true
-	});
-	var config = {
-	  peer: {
-	    host: 'ctrl-shift-v',
-	    port: 8000,
-	    path: '/peerjs'
-	  }
-	};
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-	exports.CONFIG = config;
+	var _rx = __webpack_require__(1);
+
+	var _rx2 = _interopRequireDefault(_rx);
+
+	_rx2['default'].Observable.fromServerConnection = function (conn, openObserver, closeObserver) {
+	  function peerClose() {
+	    if (closeObserver) {
+	      closeObserver.onNext();
+	      closeObserver.onCompleted();
+	    }
+
+	    conn.destroy();
+	  }
+
+	  var observable = new _rx2['default'].AnonymousObservable(function (obs) {
+	    function openHandler(e) {
+	      openObserver.onNext(e);
+	      openObserver.onCompleted();
+	    }
+
+	    function dataHandler(data) {
+	      console.log(data);
+	      obs.onNext(data);
+	    }
+
+	    function errorHandler(e) {
+	      obs.onError(e);
+	    }
+
+	    function closeHandler(e) {
+	      obs.onCompleted();
+	    }
+
+	    openObserver && conn.on('open', openHandler);
+	    conn.on('error', errorHandler);
+	    conn.on('connection', dataHandler);
+	    conn.on('close', dataHandler);
+
+	    return peerClose;
+	  });
+
+	  var observer = _rx2['default'].Observer.create(function (data) {
+	    conn.send(data);
+	  }, function (e) {
+	    peerClose();
+	  }, function () {
+	    peerClose();
+	  });
+
+	  return _rx2['default'].Subject.create(observer, observable);
+	};
 
 /***/ }
 /******/ ]);

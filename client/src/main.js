@@ -1,77 +1,86 @@
-import Rx from 'rx';
 import Peer from 'peerjs';
 import {CONFIG} from '../config';
-import './from-peer-connection';
-import './from-server-connection';
 
 const STAGE = document.querySelector('#stage');
 const PEER_ID_INPUT = document.querySelector('#peer-id');
 const LOCAL_ID = document.querySelector('#id');
 const P2P = new Peer(CONFIG.peer);
+const DEBOUNCE = 2000;
 
-function getPeerStream(conn) {
-  let id = conn.peer;
-  return Rx.Observable.fromPeerConnection(conn, Rx.Observer.create(
-    () => console.log(`Connected to peer ${ id }`)
-  ));
-}
+var handles = [];
 
-var peerServerStream = Rx.Observable.fromServerConnection(
-    P2P,
-    // onNext() called on 'connect' event
-    Rx.Observer.create(
-      (id) => {
-        LOCAL_ID.textContent = id;
-        console.log(`Connected to Peer server with id ${ id }`);
-      }
-    )
-  )
-  .flatMap(getPeerStream);
-
-var idInputStream = Rx.Observable.fromEvent(PEER_ID_INPUT, 'input')
-  .debounce(1200)
-  .filter(
-    (e) => e.target.value.length > 0
-  )
-  .map(
-    (e) => e.target.value
-  );
-
-var peerStream = idInputStream
-  .map(
-    (id) => {
-      return P2P.connect(id);
-    }
-  );
-
-peerServerStream.subscribe();
-
-peerStream.subscribe();
-
-var dataStream = peerServerStream
-  .map(
-    (data) => ({
-      id: data.id,
-      x: data.x,
-      y: data.y
-    })
-  );
-
-var elObserver = Rx.Observer.create(
-  (data) => {
-    console.log(data);
-
-    let el = document.querySelector(`[data-id=${ el }]`);
-
-    if (!el) {
-      el = document.createElement('div');
-      el.attributes['data-id'] = el;
-      STAGE.appendChild(el);
-    }
-
-    el.style.left = data.x;
-    el.style.top = data.y;
+P2P.on('open',
+  (id) => {
+    LOCAL_ID.textContent = id;
+    console.log(`Established connection to Peer server. ID ${ id }`);
   }
 );
 
-dataStream.subscribe(elObserver);
+P2P.on('connection', bindEvents);
+
+var prev;
+
+PEER_ID_INPUT.addEventListener('change',
+  (e) => {
+    clearTimeout(prev);
+    prev = setTimeout(
+      () => {
+        bindEvents(P2P.connect(e.target.value));
+      }, DEBOUNCE
+    )
+  }
+);
+
+function bindEvents(conn) {
+  console.log(conn);
+  window.addEventListener('mousemove',
+    (e) => {
+      let rect = STAGE.getBoundingClientRect();
+      if (
+        e.clientX > rect.left && e.clientX < rect.right &&
+        e.clientY > rect.top && e.clientY < rect.bottom
+      ) {
+        let data = {
+          id: P2P.id,
+          x: e.clientX - STAGE.offsetLeft,
+          y: e.clientY - STAGE.offsetTop
+        };
+        handleInput(data);
+        conn.send(data);
+      }
+    }
+  );
+  conn.on('data', handleInput);
+}
+
+function handleInput(data) {
+  let id = data.id;
+  let el = handles.filter(
+    (x) => x.dataset.id == id
+  )[0];
+
+  if (!el) {
+    el = document.createElement('div');
+    el.dataset.id = id;
+    el.classList.add('box');
+    STAGE.appendChild(el);
+    handles.push(el);
+  }
+
+  el.style.left = data.x + 'px';
+  el.style.top = data.y + 'px';
+}
+
+function findPos (obj) {
+  let left = 0,
+    top = 0;
+
+  if (obj.offsetParent) {
+    do {
+      left += obj.offsetLeft;
+      top += obj.offsetTop;
+    } while (obj = obj.offsetParent);
+
+    return { x: left, y: top };
+  }
+}
