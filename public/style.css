@@ -1,0 +1,35 @@
+body, html {
+  margin: 0;
+  padding: 0;
+}
+
+.App {
+  padding: 2em;
+  font-family: sans-serif;
+}
+
+.Stage {
+  height: 500px;
+  width: 500px;
+  background-color: #ddd;
+  position: relative;
+  margin: 1em 0;
+}
+
+.Stage-peer {
+  width: 30px;
+  height: 30px;
+  background-color: green;
+  position: absolute;
+  border-radius: 50%;
+}
+
+.Info {
+  border: 1px solid #ddd;
+  display: table;
+}
+
+.Info-item > * {
+  display: table-cell;
+  padding: 0.5em;
+}

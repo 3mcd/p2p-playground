@@ -6,4 +6,4 @@ var config = {
   }
 };
 
-export {config as CONFIG};
+export default config;

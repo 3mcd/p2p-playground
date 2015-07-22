@@ -8,6 +8,7 @@
     "babel-loader": "^5.3.2",
     "coffee-loader": "^0.7.2",
     "express": "^4.13.1",
+    "jquery": "^2.1.4",
     "node-libs-browser": "^0.5.2",
     "peer": "^0.2.8",
     "peerjs": "^0.3.14",
