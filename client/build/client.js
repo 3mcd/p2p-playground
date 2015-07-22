@@ -58,72 +58,216 @@
 
 	var _config = __webpack_require__(16);
 
+	var _config2 = _interopRequireDefault(_config);
+
 	__webpack_require__(17);
 
-	var $stage = document.querySelector('#stage');
-	var $peerInput = document.querySelector('#peer-id');
-	var $id = document.querySelector('#id');
-	var p2p = new _peerjs2['default'](_config.CONFIG.peer);
+	var $ = document.querySelector.bind(document);
+
+	/**
+	 * Main container element where our peer-to-peer data will be displayed.
+	 */
+	var $stage = $('#stage');
+
+	/**
+	 * Text input element of our handle's color.
+	 */
+	var $color = $('#color');
+
+	/**
+	 * Text input element that contains the id of the peer we wish to connect to.
+	 */
+	var $peer = $('#peer-id');
+
+	/**
+	 * The element that displays our peer id.
+	 */
+	var $id = $('#id');
+
+	/**
+	 * List of all handles tracked in our application.
+	 */
 	var handles = [];
 
+	/**
+	 * Array of potential default handle colors.
+	 */
+	var colors = ['ED0456', 'FCCE1B', '99ED09', '1E9EFC', '9000D8'];
+
+	/**
+	 * Establish a connection to the Peer server.
+	 */
+	var p2p = new _peerjs2['default'](_config2['default'].peer);
+
+	var DEFAULT_COLOR = Math.round(Math.random() * (colors.length - 1));
+	var HANDLE_RADIUS = 15;
+
+	/**
+	 * Amount of time to wait for next input value change in `$peer` element
+	 * before attempting to connect to peer.
+	 */
 	var DEBOUNCE = 2000;
 
-	var serverConnection = _rx2['default'].Observable.fromPeerServer(p2p, _rx2['default'].Observer.create(function (id) {
+	$color.value = '#' + colors[DEFAULT_COLOR];
+
+	/**
+	 * Create an Observable that will call `onNext(conn)` each time a Peer
+	 * DataConnection is established from a remote peer.
+	 */
+	var serverConnection = _rx2['default'].Observable.fromPeerServer(p2p, // Peer sever connection object
+	_rx2['default'].Observer.create( // Observer that completes when connected to Peer server
+	function (id) {
 	  console.log('Established connection to Peer server. ID ' + id);
 	  $id.textContent = id;
 	}));
 
-	var input = _rx2['default'].Observable.fromEvent($peerInput, 'keydown').debounce(DEBOUNCE).map(function (e) {
+	/**
+	 * Create an Observable that will call `onNext(e)` when the 'keydown' event
+	 * occurs on the `$peer` input.
+	 */
+	var input = _rx2['default'].Observable.fromEvent($peer, 'keydown').debounce(DEBOUNCE).map(function (e) {
 	  return e.target.value;
 	}).filter(function (id) {
 	  return id.length > 3;
 	});
 
+	/**
+	 * Connect to peer with id yielded from input Observable.
+	 */
 	var dataConnection = input.map(function (id) {
 	  return p2p.connect(id);
 	});
 
+	/**
+	 * Since the client can either be handed a DataConnection remotely (via
+	 * `dataConnection`) or locally (via `serverConnection`), we merge the two
+	 * observables into a single stream to consolidate how they are handled into
+	 * a single subscriber callback.
+	 */
 	var connections = _rx2['default'].Observable.merge(serverConnection, dataConnection);
 
 	connections.subscribe(handleConnection);
 
-	var mousemove = _rx2['default'].Observable.fromEvent(window, 'mousemove').filter(function (e) {
-	  var rect = $stage.getBoundingClientRect();
-	  return e.clientX > rect.left && e.clientX < rect.right && e.clientY > rect.top && e.clientY < rect.bottom;
-	}).map(function (e) {
+	/**
+	 * Create an Observable that will call `onNext(e)` when a 'mousemove' event
+	 * occurs within the window element.
+	 */
+	var mousemove = _rx2['default'].Observable.fromEvent(window, 'mousemove')
+	/**
+	 * Map each event object to an object literal containing imporant information
+	 * about the event, as well as some additional data like our local id and
+	 * specified handle color.
+	 */
+	.map(function (e) {
 	  return {
 	    id: p2p.id,
-	    x: e.clientX - $stage.offsetLeft,
-	    y: e.clientY - $stage.offsetTop
+	    /**
+	     * We subtract the `$stage` offsets because the coordinate data we send
+	     * is relative to the stage element, not the window. We also subtract
+	     * the handle radius to center the cursor position.
+	     */
+	    x: e.clientX - $stage.offsetLeft - HANDLE_RADIUS,
+	    y: e.clientY - $stage.offsetTop - HANDLE_RADIUS,
+	    c: $color.value
 	  };
+	})
+	/**
+	 * Ensure each x, y coordinate is a valid move within the `$stage` element.
+	 */
+	.map(function (data) {
+	  var $el = findPeerHandle(data.id);
+
+	  if ($el) {
+	    var rect1 = getRect($stage);
+	    var rect2 = getRect($el);
+	    var valid = canMoveRectTo(rect1, /* stage */rect2, /* handle */{
+	      /**
+	       * Add the `$stage` offsets back so we can calculate collisions via
+	       * rectangles, which are relative to the window.
+	       */
+	      x: data.x + $stage.offsetLeft,
+	      y: data.y + $stage.offsetTop
+	    });
+
+	    if (!valid.x) data.x = null; // Don't yield transformation if a collision occurs
+
+	    if (!valid.y) data.y = null;
+	  }
+
+	  return data;
 	});
 
 	function handleConnection(conn) {
-	  var dataConnection = _rx2['default'].Observable.fromPeerDataConnection(conn, _rx2['default'].Observer.create(function () {
+	  /**
+	   * Create a Subject that will call `onNext(data)` when a DataConnection sends
+	   * data. The Subject can also execute `onNext()` to send data back up the
+	   * wire.
+	   */
+	  var dataConnection = _rx2['default'].Observable.fromPeerDataConnection(conn, // DataConnection
+	  _rx2['default'].Observer.create( // Observer that completes when the connection is made
+	  function () {
+	    /**
+	     * Subscribe to the mousemove Observable, sending the transformed event
+	     * data to the connected peer(s), and updating our local handle
+	     * position.
+	     */
 	    mousemove.subscribe(function (data) {
 	      dataConnection.onNext(data);
 	      updateHandle(data);
 	    });
 	  }));
 
+	  /**
+	   * Subscribe to the `dataConnection` subject, updating remote peers' handles
+	   * as they send data to us.
+	   */
 	  dataConnection.subscribe(updateHandle);
 	}
 
+	/**
+	 * Update the position of a remote handle or the local handle.
+	 */
 	function updateHandle(data) {
-	  var el = handles.filter(function (x) {
-	    return x.dataset['peerId'] == data.id;
-	  })[0];
+	  var $el = findPeerHandle(data.id);
 
-	  if (!el) {
-	    el = document.createElement('div');
-	    el.dataset['peerId'] = data.id;
-	    el.classList.add('box');
-	    $stage.appendChild(el);
-	    handles.push(el);
+	  if (!$el) {
+	    // Create the handle if it does not already exist.
+	    var handleSize = HANDLE_RADIUS * 2 + 'px';
+
+	    $el = document.createElement('div');
+	    $el.style.width = handleSize;
+	    $el.style.height = handleSize;
+	    $el.dataset['peerId'] = data.id;
+	    $el.classList.add('Stage-peer');
+
+	    $stage.appendChild($el);
+
+	    handles.push($el);
 	  }
 
-	  el.style.left = data.x + 'px';
-	  el.style.top = data.y + 'px';
+	  $el.style.backgroundColor = data.c;
+
+	  if (data.x) $el.style.left = data.x + 'px';
+	  if (data.y) $el.style.top = data.y + 'px';
+	}
+
+	function getRect(el) {
+	  return el.getBoundingClientRect();
+	}
+
+	function canMoveRectTo(rect1, rect2, v) {
+	  var dx = rect2.width;
+	  var dy = rect2.height;
+	  return {
+	    x: rect1.left < v.x && rect1.right > v.x + dx,
+	    y: rect1.top < v.y && rect1.bottom > v.y + dy
+	  };
+	}
+
+	function findPeerHandle(id) {
+	  return handles.filter(function (x) {
+	    return x.dataset['peerId'] == id;
+	  })[0];
 	}
 
 /***/ },
@@ -13984,7 +14128,8 @@
 	  }
 	};
 
-	exports.CONFIG = config;
+	exports['default'] = config;
+	module.exports = exports['default'];
 
 /***/ },
 /* 17 */
